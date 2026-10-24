@@ -73,8 +73,20 @@ function Package {
         throw 'InnoSetup install script not found. Run the build script or the CMake build and install procedures first.'
     }
 
-    Copy-Item -Path "${ProjectRoot}/release/${Configuration}/${ProductName}/bin" -Destination "${ProjectRoot}/release/Package/obs-plugins" -Recurse
-    Copy-Item -Path "${ProjectRoot}/release/${Configuration}/${ProductName}/data" -Destination "${ProjectRoot}/release/Package/data/obs-plugins/${ProductName}" -Recurse
+    $BundleSource = "${ProjectRoot}/release/${Configuration}/${ProductName}"
+    if ( ! ( Test-Path -Path $BundleSource ) ) {
+        throw "Plugin bundle not found at ${BundleSource}. Run the build and install steps first."
+    }
+
+    $PackageRoot = "${ProjectRoot}/release/Package"
+    if ( Test-Path -Path $PackageRoot ) {
+        Remove-Item -LiteralPath $PackageRoot -Recurse -Force
+    }
+
+    $BundleStage = "${PackageRoot}/${ProductName}"
+    Copy-Item -Path $BundleSource -Destination $PackageRoot -Recurse
+    Get-ChildItem -Path $BundleStage -Filter '*.pdb' -File | Remove-Item -Force
+
     Copy-Item "${IsccFile}" -Destination "${ProjectRoot}/release"
     Copy-Item "${ProjectRoot}/media/icon.ico" -Destination "${ProjectRoot}/release"
 
@@ -86,15 +98,7 @@ function Package {
 
     Log-Group "Archiving ${ProductName}..."
     $CompressArgs = @{
-        Path = (Get-ChildItem -Path "${ProjectRoot}/release/${Configuration}" -Exclude "${OutputName}*.*")
-        CompressionLevel = 'Optimal'
-        DestinationPath = "${ProjectRoot}/release/${OutputName}-programdata.zip"
-        Verbose = ($Env:CI -ne $null)
-    }
-    Compress-Archive -Force @CompressArgs
-
-    $CompressArgs = @{
-        Path = (Get-ChildItem -Path "${ProjectRoot}/release/Package" -Exclude "${OutputName}*.*")
+        Path = $BundleStage
         CompressionLevel = 'Optimal'
         DestinationPath = "${ProjectRoot}/release/${OutputName}.zip"
         Verbose = ($Env:CI -ne $null)
