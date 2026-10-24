@@ -82,6 +82,7 @@ function Package {
     if ( Test-Path -Path $PackageRoot ) {
         Remove-Item -LiteralPath $PackageRoot -Recurse -Force
     }
+    New-Item -ItemType Directory -Path $PackageRoot | Out-Null
 
     $BundleStage = "${PackageRoot}/${ProductName}"
     Copy-Item -Path $BundleSource -Destination $PackageRoot -Recurse
